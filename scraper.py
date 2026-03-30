@@ -19,7 +19,7 @@ CHUNK_SIZE = 50
 
 # Regex for common download mirrors
 MIRROR_REGEX = re.compile(
-    r'https?://(?:www\.)?(mega\.nz|mediafire\.com|gofile\.io|krakenfiles\.com|drop\.download|1fichier\.com|userscloud\.com|rapidgator\.net|katfile\.com|turbobit\.net|send\.cm|zippyshare\.com)/[^\s"\'<>]+'
+    r'https?://(?:www\.)?(mega\.nz|mediafire\.com|gofile\.io|krakenfiles\.com|drop\.download|1fichier\.com|userscloud\.com|rapidgator\.net|katfile\.com|turbobit\.net|send\.cm|zippyshare\.com|workupload\.com|upload\.ee|send\.now|pixeldrain\.com|megaup\.net|ddownload\.com|bowfile\.com|1cloudfile\.com|usersdrive\.com|send\.sh|nitroflare\.com|filechan\.org)/[^\s"\'<>]+'
 )
 
 ua = UserAgent()
@@ -89,8 +89,34 @@ def scrape_post_details(post_url):
         date_tag = soup.select_one('time')
         date_str = date_tag.get('datetime') or date_tag.text.strip() if date_tag else str(datetime.now())
         
-        # Deep-link extraction using regex on the whole Page Text/HTML
-        full_links = list(set(re.findall(r'https?://(?:www\.)?(?:mega\.nz|mediafire\.com|gofile\.io|krakenfiles\.com|drop\.download|1fichier\.com|userscloud\.com|rapidgator\.net|katfile\.com|turbobit\.net|send\.cm|zippyshare\.com)/[^\s"\'<>]+', response.text)))
+        # Targeted download link extraction
+        download_links = []
+        
+        # 1. Capture from quote blocks (common for mirror lists)
+        quote_blocks = soup.select('.quote')
+        for block in quote_blocks:
+            # Links can be raw text separated by <br> or hidden in comments
+            text_content = block.get_text('\n')
+            found = re.findall(r'https?://[^\s"\'<>]+', text_content)
+            download_links.extend(found)
+            
+        # 2. Capture from any explicit <a> tags that look like download mirrors
+        for a_tag in soup.select('a[href]'):
+            href = a_tag.get('href')
+            if MIRROR_REGEX.search(href):
+                download_links.append(href)
+        
+        # 3. Fallback: regex search across whole text for common domains + any links in the quote block
+        # deduplicate while preserving order if possible, or just use set
+        full_links = list(set(download_links))
+        
+        # If still empty or very limited, try the original regex on the whole HTML as safety
+        if len(full_links) < 2:
+            html_links = re.findall(MIRROR_REGEX, response.text)
+            full_links = list(set(full_links + html_links))
+            
+        # Filter out internal links
+        full_links = [l for l in full_links if 'codelist.cc' not in l]
 
         # Find thumbnail within the post content or header
         img_tag = soup.select_one('.post__thumb img') or soup.select_one('article img')
