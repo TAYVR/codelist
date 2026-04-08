@@ -8,7 +8,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 360
     steps:
       - name: Checkout Bot Repository
         uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Scraper
         run: |
-          python scraper.py
+          timeout 5h python scraper.py || true
 
       - name: Push Data Repo Changes
         working-directory: data_repo
