@@ -1,5 +1,4 @@
 # Gitignore for Bot Repo
-data_repo/
 __pycache__/
 *.pyc
 .env
