@@ -4,6 +4,7 @@ import time
 import random
 import base64
 import requests
+import cloudscraper
 import re
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -23,6 +24,7 @@ MIRROR_REGEX = re.compile(
 )
 
 ua = UserAgent()
+SESSION = cloudscraper.create_scraper()
 
 def log(message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -57,7 +59,7 @@ def get_image_base64(img_url):
         img_url = "https://codelist.cc" + img_url
     try:
         headers = {"User-Agent": ua.random}
-        response = requests.get(img_url, headers=headers, timeout=10)
+        response = SESSION.get(img_url, headers=headers, timeout=10)
         if response.status_code == 200:
             content_length = len(response.content)
             if content_length < 150 * 1024: # < 150KB
@@ -71,7 +73,7 @@ def get_image_base64(img_url):
 def scrape_post_details(post_url):
     try:
         headers = {"User-Agent": ua.random}
-        response = requests.get(post_url, headers=headers, timeout=15)
+        response = SESSION.get(post_url, headers=headers, timeout=15)
         if response.status_code != 200:
             log(f"Failed to load post: {post_url} (Status: {response.status_code})")
             return None
@@ -165,7 +167,7 @@ def main():
                 
             log(f"Processing page {current_page}: {url}")
             headers = {"User-Agent": ua.random}
-            response = requests.get(url, headers=headers, timeout=15)
+            response = SESSION.get(url, headers=headers, timeout=15)
             if response.status_code != 200:
                 log(f"Finished or Error: Page {current_page} returned {response.status_code}")
                 break
